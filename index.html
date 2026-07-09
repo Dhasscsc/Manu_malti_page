@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>பொதுவான விண்ணப்பக் கவரிங் லெட்டர் டூல்</title>
+    <style>
+        :root {
+            --primary: #0f172a; 
+            --secondary: #3b82f6;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #cbd5e1;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg); padding: 20px; max-width: 1500px; margin: 0 auto; display: flex; gap: 20px; }
+        
+        .form-container { flex: 1.2; background: var(--surface); padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .sidebar { flex: 0.8; background: var(--surface); padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-height: 90vh; display: flex; flex-direction: column; }
+        
+        header { text-align: center; margin-bottom: 20px; padding: 10px; border-bottom: 2px solid var(--primary); }
+        header h1 { color: var(--primary); font-size: 1.6rem; }
+        
+        h2 { color: white; margin-bottom: 15px; font-size: 1.2rem; background: var(--primary); padding: 6px 10px; border-radius: 4px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .full-width { grid-column: span 2; }
+        
+        label { font-weight: 600; font-size: 0.9rem; color: #334155; }
+        input, select, textarea { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.95rem; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; }
+        
+        button[type="submit"] { padding: 12px; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; color: white; background: var(--primary); width: 100%; }
+        button[type="submit"]:hover { background: #1e293b; }
+        
+        .blank-print-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; }
+        .btn-blank { background: var(--success); font-size: 0.9rem; padding: 8px; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-blank:hover { background: #15803d; }
+
+        .history-list { overflow-y: auto; flex: 1; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .history-item { border: 1px solid var(--border); padding: 12px; border-radius: 6px; background: #f8fafc; cursor: pointer; transition: all 0.2s; }
+        .history-item:hover { border-color: var(--primary); background: #f1f5f9; }
+        .search-box { padding: 8px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 4px; width: 100%; }
+
+        /* PRINT STYLES - DYNAMIC MULTI-PAGE FLOW ALLOWED */
+        #print-area { display: none; }
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm 20mm 15mm 20mm; 
+            }
+            html, body { background: #fff !important; background-color: #fff !important; width: 100%; height: auto; font-size: 11pt; line-height: 1.6; }
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { 
+                display: block !important; 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%;
+                background: #fff !important; 
+                color: #000; 
+            }
+            
+            .p-title { text-align: center; margin-bottom: 30px; font-size: 1.4rem; font-weight: bold; text-decoration: underline; }
+            .p-section { margin-bottom: 25px; page-break-inside: avoid; }
+            .p-label { font-weight: bold; margin-bottom: 5px; display: block; }
+            
+            .lines-container { display: flex; flex-direction: column; width: 100%; margin-bottom: 15px; }
+            .from-to-lines { height: 130px; justify-content: space-between; display: flex; flex-direction: column; }
+            .sub-lines { height: 55px; justify-content: space-between; display: flex; flex-direction: column; }
+            .print-line { border-bottom: 1px dashed #555; width: 100%; height: 24px; }
+            
+            .text-filled-box { white-space: pre-wrap; font-weight: normal; word-break: break-word; line-height: 1.6; }
+            
+            .p-subject-row { margin: 25px 0; font-weight: bold; display: flex; gap: 5px; page-break-inside: avoid; }
+            .p-salutation { margin-top: 25px; font-weight: bold; margin-bottom: 15px; page-break-inside: avoid; }
+            
+            /* நீண்ட உரை தடையின்றி அடுத்த பக்கத்திற்குச் செல்ல பிரத்யேக வடிவமைப்பு */
+            .p-body-content { text-align: justify; text-indent: 40px; margin-bottom: 40px; }
+            
+            /* சிக்னேச்சர் ஏரியா தனியாக பிரியாமல் இருக்க 'avoid' சேர்க்கப்பட்டுள்ளது */
+            .p-footer { display: flex; justify-content: space-between; margin-top: 40px; font-weight: bold; page-break-inside: avoid; }
+            .footer-sign-area { text-align: center; width: 180px; }
+            .sign-space { height: 45px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <header>
+            <h1>பொது விண்ணப்பக் கவரிங் லெட்டர் (Covering Letter)</h1>
+        </header>
+
+        <h2>விவரங்களை நிரப்பவும் (Data Entry)</h2>
+        <form id="coveringLetterForm">
+            <div class="form-group full-width" style="margin-bottom: 12px;">
+                <label>1. அனுப்புநர் விவரம் (From Address - 5 வரிகள் அளவு):</label>
+                <textarea id="fromAddress" rows="5" placeholder="பெயர், கதவு எண், தெரு, ஊர், மொபைல் எண்..."></textarea>
+            </div>
+
+            <div class="form-group full-width" style="margin-bottom: 12px;">
+                <label>2. பெறுநர் விவரம் (To Address - 5 வரிகள் அளவு):</label>
+                <textarea id="toAddress" rows="5" placeholder="அதிகாரியின் பதவி, அலுவலக முகவரி, ஊர் பெயர்..."></textarea>
+            </div>
+
+            <div class="form-group full-width" style="margin-bottom: 12px;">
+                <label>3. பொருள் (Subject - 2 வரிகள் அளவு):</label>
+                <textarea id="subjectText" rows="2" placeholder="விண்ணப்பத்தின் சுருக்கமான பொருள்..."></textarea>
+            </div>
+
+            <div class="form-group full-width" style="margin-bottom: 15px;">
+                <label>4. விளக்க உரை (Letter Body Content - எவ்வளவு வேண்டுமானாலும் டைப் செய்யலாம்):</label>
+                <textarea id="bodyContent" rows="12" placeholder="மதிப்பிற்குரிய ஐயா / அம்மா என்பதற்கு கீழே வர வேண்டிய முழு விபரங்களையும் இங்கு டைப் செய்யவும்..."></textarea>
+            </div>
+
+            <button type="submit">💾 கடிதத்தைச் சேமி & பிரிண்ட் எடு</button>
+        </form>
+    </div>
+
+    <div class="sidebar">
+        <h2>அச்சு வசதிகள்</h2>
+        <div class="blank-print-box">
+            <button type="button" class="btn-blank" onclick="printBlankForm()">🖨️ வெற்று படிவம் பிரிண்ட் (Blank Form)</button>
+        </div>
+
+        <h2>பதிவு செய்யப்பட்டவை</h2>
+        <input type="text" id="search" class="search-box" placeholder="அனுப்புநர் பெயர் மூலம் தேட..." oninput="loadData()">
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div id="print-area">
+        <div class="p-title">விண்ணப்பப் படிவம் / கடிதம்</div>
+
+        <div class="p-section" style="width: 60%;">
+            <span class="p-label">அனுப்புநர் (From)</span>
+            <div id="pFromContainer"></div>
+        </div>
+
+        <div class="p-section" style="width: 60%; margin-left: 40px;">
+            <span class="p-label">பெறுநர் (To)</span>
+            <div id="pToContainer"></div>
+        </div>
+
+        <div class="p-subject-row">
+            <span>பொருள் (Sub) :</span>
+            <div id="pSubjectContainer" style="flex: 1;"></div>
+        </div>
+
+        <div class="p-salutation">மதிப்பிற்குரிய ஐயா / அம்மா,</div>
+
+        <div class="p-body-content" id="pBodyContainer"></div>
+
+        <div class="p-footer">
+            <div>
+                <p>இடம்: __________________</p>
+                <p style="margin-top: 10px;">தேதி: <span id="pCurrentDate"></span></p>
+            </div>
+            <div class="footer-sign-area">
+                <p>தங்கள் உண்மையுள்ள,</p>
+                <div class="sign-space"></div>
+                <p>(விண்ணப்பதாரரின் கையொப்பம்)</p>
+            </div>
+        </div>
+    </div>
+
+    <script {nonce}>
+        let db;
+        const request = indexedDB.open("CoveringLetterDB", 1);
+        
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if(!db.objectStoreNames.contains("letters")) {
+                db.createObjectStore("letters", { keyPath: "id", autoIncrement: true });
+            }
+        };
+        request.onsuccess = (e) => { db = e.target.result; loadData(); };
+
+        document.getElementById('coveringLetterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const record = {
+                fromAddress: document.getElementById('fromAddress').value,
+                toAddress: document.getElementById('toAddress').value,
+                subjectText: document.getElementById('subjectText').value,
+                bodyContent: document.getElementById('bodyContent').value,
+                date: new Date().toLocaleDateString('en-GB')
+            };
+
+            const tx = db.transaction("letters", "readwrite");
+            tx.objectStore("letters").add(record);
+            
+            tx.oncomplete = () => {
+                alert("கடிதம் வெற்றிகரமாகச் சேமிக்கப்பட்டது!");
+                loadData();
+                printLetter(record, false);
+                document.getElementById('coveringLetterForm').reset();
+            };
+        });
+
+        function loadData() {
+            const searchQ = document.getElementById('search').value.toLowerCase();
+            const list = document.getElementById('historyList');
+            list.innerHTML = "";
+
+            db.transaction("letters", "readonly").objectStore("letters").openCursor(null, "prev").onsuccess = (e) => {
+                const cursor = e.target.result;
+                if(cursor) {
+                    const v = cursor.value;
+                    if(v.fromAddress.toLowerCase().includes(searchQ)) {
+                        const div = document.createElement('div');
+                        div.className = "history-item";
+                        div.onclick = () => printLetter(v, false);
+                        const firstLine = v.fromAddress.split('\n')[0] || "விவரம் இல்லை";
+                        div.innerHTML = `<strong>${firstLine}</strong><br><small>📅 தேதி: ${v.date}</small>`;
+                        list.appendChild(div);
+                    }
+                    cursor.continue();
+                }
+            };
+        }
+
+        function printLetter(v, isBlank = false) {
+            const fromBox = document.getElementById('pFromContainer');
+            const toBox = document.getElementById('pToContainer');
+            const subBox = document.getElementById('pSubjectContainer');
+            const bodyBox = document.getElementById('pBodyContainer');
+
+            if (isBlank) {
+                fromBox.innerHTML = `
+                    <div class="lines-container from-to-lines">
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div>
+                    </div>`;
+                toBox.innerHTML = `
+                    <div class="lines-container from-to-lines">
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div>
+                    </div>`;
+                subBox.innerHTML = `
+                    <div class="lines-container sub-lines">
+                        <div class="print-line"></div><div class="print-line"></div>
+                    </div>`;
+                bodyBox.innerHTML = `
+                    <div class="lines-container" style="gap: 12px;">
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div><div class="print-line"></div>
+                        <div class="print-line"></div><div class="print-line"></div>
+                    </div>`;
+                document.getElementById('pCurrentDate').innerText = "____/____/________";
+            } else {
+                fromBox.innerHTML = `<div class="text-filled-box">${v.fromAddress ? v.fromAddress : '&nbsp;'}</div>`;
+                toBox.innerHTML = `<div class="text-filled-box">${v.toAddress ? v.toAddress : '&nbsp;'}</div>`;
+                subBox.innerHTML = `<div style="font-weight: bold; line-height: 1.4;">${v.subjectText ? v.subjectText : '&nbsp;'}</div>`;
+                bodyBox.innerHTML = `<div class="text-filled-box" style="text-indent: 40px;">${v.bodyContent ? v.bodyContent : '&nbsp;'}</div>`;
+                document.getElementById('pCurrentDate').innerText = v.date || new Date().toLocaleDateString('en-GB');
+            }
+
+            window.print();
+        }
+
+        function printBlankForm() {
+            printLetter(null, true);
+        }
+    </script>
+</body>
+</html>
